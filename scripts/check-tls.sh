@@ -3,15 +3,15 @@
 # CI runs it against the compose stack. Before an assessment, run it against
 # the production host too, and attach an SSL Labs report.
 #
-#   scripts/check-tls.sh [host] [https_port] [http_port]   (default localhost 8443 8000)
+#   scripts/check-tls.sh [host] [https_port] [http_port]   (default localhost 8000 8000)
 #   scripts/check-tls.sh hadalspace.com 443 80              (production, on the server)
 #
 # Env: CHECK_DB=0 skips the Postgres checks (when the DB isn't in compose).
 set -uo pipefail
 
 HOST="${1:-localhost}"
-HTTPS_PORT="${2:-8443}"
-HTTP_PORT="${3:-8000}"
+HTTPS_PORT="${2:-8000}"
+HTTP_PORT="${3:-$HTTPS_PORT}"   # locally the same port: nginx redirects plain HTTP sent to it
 cd "$(dirname "$0")/.."
 
 fails=0

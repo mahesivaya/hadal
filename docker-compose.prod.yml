@@ -1,11 +1,22 @@
-# Production overlay for hadalspace.com, with Let's Encrypt certificates.
+# Production overlay for hadalspace.com, on the wayve-mfa production host.
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
-# First time on a server: scripts/letsencrypt-init.sh issues the certificate
-# (DNS for hadalspace.com and www.hadalspace.com must point at the server and
-# ports 80/443 must be open). After that the certbot service renews it and
-# nginx reloads every 6 hours to pick the renewal up.
+# TLS reuses wayve-mfa's Let's Encrypt certificate instead of issuing a new
+# one: cert name "fluxze.com", whose names include hadalspace.com and
+# www.hadalspace.com. It lives in wayve-mfa's Docker volumes, mounted here
+# read-only:
+#
+#   rwayve_prod_letsencrypt_certs  /etc/letsencrypt   certificate + key
+#   rwayve_prod_certbot_webroot    /var/www/certbot   ACME HTTP-01 challenges
+#
+# wayve-mfa's cron job (wayve-mfa/scripts/renew-certs.sh) renews it. Hadal
+# never writes to these volumes. Our nginx serves the challenge directory on
+# port 80, so renewals keep working while Hadal holds ports 80/443, and it
+# reloads every 6 hours to pick up a renewed certificate.
+#
+# Only one nginx can bind ports 80/443 on the host: stop wayve-mfa's nginx
+# (or have it proxy hadalspace.com here) before starting this one.
 #
 # Settings come from .env (see production.env.example). Production secrets
 # belong in a secrets manager that writes .env or the environment (CASA 6.7.1).
@@ -25,33 +36,21 @@ services:
       - "443:443"
     environment:
       SERVER_NAME: ${DOMAIN:-hadalspace.com} www.${DOMAIN:-hadalspace.com}
-      SSL_CERTIFICATE: /etc/letsencrypt/live/${CERT_NAME:-hadalspace.com}/fullchain.pem
-      SSL_CERTIFICATE_KEY: /etc/letsencrypt/live/${CERT_NAME:-hadalspace.com}/privkey.pem
+      SSL_CERTIFICATE: /etc/letsencrypt/live/${CERT_NAME:-fluxze.com}/fullchain.pem
+      SSL_CERTIFICATE_KEY: /etc/letsencrypt/live/${CERT_NAME:-fluxze.com}/privkey.pem
       HTTPS_REDIRECT_PORT_SUFFIX: ""
       HSTS_MAX_AGE: ${HSTS_MAX_AGE:-63072000}
       CERT_RELOAD_HOURS: "6"
     volumes: !override
-      - letsencrypt:/etc/letsencrypt:ro
-      - certbot_webroot:/var/www/certbot:ro
-
-  # Renews the certificate when it is within 30 days of expiry (checked twice
-  # a day) using the HTTP-01 webroot nginx serves on port 80.
-  certbot:
-    image: certbot/certbot:v4.1.1
-    restart: unless-stopped
-    volumes:
-      - letsencrypt:/etc/letsencrypt
-      - certbot_webroot:/var/www/certbot
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        trap exit TERM
-        while :; do
-          certbot renew --webroot -w /var/www/certbot --quiet
-          sleep 12h & wait $${!}
-        done
+      - wayve_letsencrypt:/etc/letsencrypt:ro
+      - wayve_certbot_webroot:/var/www/certbot:ro
 
 volumes:
-  letsencrypt:
-  certbot_webroot:
+  # Created and owned by wayve-mfa (compose project "rwayve_prod"). Compose
+  # refuses to start if they don't exist, rather than creating empty ones.
+  wayve_letsencrypt:
+    external: true
+    name: ${LETSENCRYPT_VOLUME:-rwayve_prod_letsencrypt_certs}
+  wayve_certbot_webroot:
+    external: true
+    name: ${CERTBOT_WEBROOT_VOLUME:-rwayve_prod_certbot_webroot}

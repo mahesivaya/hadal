@@ -83,23 +83,23 @@ jobs:
         run: |
           scripts/dev-certs.sh
           {
-            printf 'POSTGRES_PASSWORD=%s\nHTTP_PORT=8000\nHTTPS_PORT=8443\n' "$(openssl rand -hex 24)"
+            printf 'POSTGRES_PASSWORD=%s\nHTTPS_PORT=8000\n' "$(openssl rand -hex 24)"
             # Placeholder OAuth client: lets the stack boot for the scan; no
             # real sign-in can complete with it.
             printf 'GOOGLE_CLIENT_ID=zap-scan.apps.googleusercontent.com\n'
             printf 'GOOGLE_CLIENT_SECRET=%s\n' "$(openssl rand -hex 24)"
-            printf 'OAUTH_REDIRECT_URI=https://localhost:8443/api/auth/callback\n'
+            printf 'OAUTH_REDIRECT_URI=https://localhost:8000/api/auth/callback\n'
           } > .env
           docker compose up -d --build --wait
       # CASA 4.1.1 / 4.1.2: TLS versions and suites, HTTP->HTTPS, HSTS, and
       # TLS on every backend-to-Postgres connection.
       - name: TLS check
-        run: scripts/check-tls.sh localhost 8443 8000
+        run: scripts/check-tls.sh localhost 8000
       - name: ZAP baseline scan
         run: |
           mkdir -p zap && chmod 777 zap
           docker run --rm --network host -v "$PWD/zap:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t https://localhost:8443 -I -r report.html -J report.json
+            zap-baseline.py -t https://localhost:8000 -I -r report.html -J report.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

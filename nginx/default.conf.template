@@ -7,7 +7,7 @@
 #   SSL_CERTIFICATE / SSL_CERTIFICATE_KEY
 #                                production: Let's Encrypt (docker-compose.prod.yml)
 #                                local: mkcert files in /etc/nginx/certs
-#   HTTPS_REDIRECT_PORT_SUFFIX   "" in production, ":8443" locally
+#   HTTPS_REDIRECT_PORT_SUFFIX   "" in production, ":8000" locally
 #   HSTS_MAX_AGE                 seconds
 
 upstream backend {
@@ -54,6 +54,10 @@ server {
     ssl_session_cache shared:TLS:10m;
     ssl_session_timeout 1d;
     ssl_session_tickets off;
+
+    # Plain HTTP sent to this TLS port (e.g. http://localhost:8000 locally)
+    # gets a redirect to HTTPS instead of nginx's "400 plain HTTP" page.
+    error_page 497 =301 https://$host${HTTPS_REDIRECT_PORT_SUFFIX}$request_uri;
 
     root /usr/share/nginx/html;
     index index.html;

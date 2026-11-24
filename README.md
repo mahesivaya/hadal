@@ -23,10 +23,10 @@ cp .env.example .env      # then set POSTGRES_PASSWORD (openssl rand -hex 24)
                           # and the Google OAuth client (below)
 scripts/dev-certs.sh      # TLS certificates for nginx and Postgres (certs/, git-ignored)
 docker compose up -d --build
-open https://localhost:8443
+open https://localhost:8000
 ```
 
-HTTPS only: `http://localhost:8000` just redirects to `https://localhost:8443`,
+HTTPS only, on port 8000: `http://localhost:8000` just redirects to `https://localhost:8000`,
 and Postgres refuses connections without TLS. `scripts/dev-certs.sh` uses
 [mkcert](https://github.com/FiloSottile/mkcert) when it is installed (run
 `mkcert -install` once so the browser trusts it); otherwise the certificate is
@@ -37,7 +37,7 @@ stack: TLS versions and suites, the redirect, HSTS, and TLS to Postgres.
 
 1. In Google Cloud Console → APIs & Services → Credentials, create an
    **OAuth client ID** of type **Web application**.
-2. Add the authorized redirect URI `https://localhost:8443/api/auth/callback`
+2. Add the authorized redirect URI `https://localhost:8000/api/auth/callback`
    (for Vite dev on :5173, also add `http://localhost:5173/api/auth/callback` and set
    `OAUTH_REDIRECT_URI` to it). Outside localhost it must be `https://`.
 3. Put the client ID and secret in `.env` as `GOOGLE_CLIENT_ID` and

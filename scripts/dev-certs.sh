@@ -3,7 +3,7 @@
 # Output goes to certs/ (git-ignored). Safe to re-run: existing files are kept
 # unless they expire within 30 days, or --force is given.
 #
-#   certs/nginx/{cert,key}.pem          HTTPS for https://localhost:8443
+#   certs/nginx/{cert,key}.pem          HTTPS for https://localhost:8000
 #       mkcert is used when installed, so browsers trust it (run
 #       `mkcert -install` once); otherwise a self-signed certificate.
 #   certs/db/{ca.crt,server.crt,server.key}

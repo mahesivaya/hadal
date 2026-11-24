@@ -41,7 +41,7 @@ services:
       # without them. Production: inject from a secrets manager (CASA 6.7.1).
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET in .env}
-      OAUTH_REDIRECT_URI: ${OAUTH_REDIRECT_URI:-https://localhost:${HTTPS_PORT:-8443}/api/auth/callback}
+      OAUTH_REDIRECT_URI: ${OAUTH_REDIRECT_URI:-https://localhost:${HTTPS_PORT:-8000}/api/auth/callback}
       SESSION_IDLE_SECS: ${SESSION_IDLE_SECS:-1800}
       SESSION_ABSOLUTE_SECS: ${SESSION_ABSOLUTE_SECS:-43200}
     volumes:
@@ -55,12 +55,12 @@ services:
       context: .
       dockerfile: nginx/Dockerfile
     restart: unless-stopped
-    # The app is https://localhost:8443. Port 8000 only redirects to it.
+    # The app is https://localhost:8000, the only published port. Plain HTTP
+    # sent to it is redirected to HTTPS on the same port (nginx 497 handler).
     ports:
-      - "${HTTP_PORT:-8000}:80"
-      - "${HTTPS_PORT:-8443}:443"
+      - "${HTTPS_PORT:-8000}:443"
     environment:
-      HTTPS_REDIRECT_PORT_SUFFIX: ":${HTTPS_PORT:-8443}"
+      HTTPS_REDIRECT_PORT_SUFFIX: ":${HTTPS_PORT:-8000}"
       # Production keeps the image default (2 years). Locally it's 5 minutes,
       # because browsers apply HSTS to every port on localhost.
       HSTS_MAX_AGE: ${HSTS_MAX_AGE:-300}
